@@ -6,39 +6,43 @@ class CrawlerSpider(scrapy.Spider):
     name = "crawl_point"
     MaVung="02"
     start_urls = [
-        'https://vietnamnet.vn/vn/giao-duc/tra-cuu-diem-thi-thpt'
+        'https://thanhnien.vn/giao-duc/tuyen-sinh/2020/tra-cuu-diem-thi-thpt-quoc-gia.html'
     ]
 
     def parse(self, response):
         SBD='02000000'
-        for i in range(1,74719):
+        for i in range(201,300):
             SBD=SBD[:len(SBD)-len(str(i))]+str(i)
             print(i)
-            yield scrapy.Request("https://vietnamnet.vn/vn/giao-duc/tra-cuu-diem-thi-thpt/?y=2020&sbd="+SBD, callback=self.crawlLyric)
+            yield scrapy.Request("https://thanhnien.vn/ajax/diemthi.aspx?kythi=THPT&nam=2020&city=&text="+SBD+"&top=no", callback=self.crawlLyric)
 
     def crawlLyric(self, response):
         item = ThptItem()
-        item['SBD']=response.xpath('//p[@class="SoBD m-t-10"]/span/text()')[0].extract() 
+        print(response.xpath("//td[@class='']/text()")[1].extract())
+        item['SBD']=response.xpath("//td[@class='']/text()")[1].extract()
         item['MaVung']=item['SBD'][0:2]
+        tab_2=["Toán","Ngữvăn","Vậtlí","Hóahọc","Sinhhọc"]
+        tab_2=list(enumerate(tab_2))
+        tab_3=["Lịchsử","Địalí","GDCD","Ngoạingữ","N1"]
+        tab_3=list(enumerate(tab_3))
         #set default NgoaiNgu
-        item['N1'] = -1
         item['N2'] = -1
         item['N3'] = -1
         item['N4'] = -1
         item['N5'] = -1
         item['N6'] = -1
-        arrTr = response.xpath(
-            '//table[@class="table thpt-mobile hidden-md hidden-sm hidden-lg"]/tr')
-        if len(arrTr[2].xpath('td/text()').extract()) == 2:
-            type = arrTr[2].xpath('td/text()').extract()[1].split(':')[0]
-            point = arrTr[2].xpath('td/text()').extract()[1].split(':')[1]
-            item[type] = point
-        for i in range(9):
-            arr = arrTr[i].xpath('td/text()').extract()
-            arr[0] = arr[0].replace(' ', '')
-            if len(arr) == 2:
-                item[arr[0]] = arr[1]
-            else:
-                item[arr[0]] = -1
+        arrTr = response.xpath("//td[@class='mobile-tab-content mobile-tab-2']")
+        for i in tab_2:
+        	try:
+        		item[i[1]]=arrTr[i[0]].xpath("text()")[0].extract()
+        	except:
+        		item[i[1]]=-1
+        arrTr = response.xpath("//td[@class='mobile-tab-content mobile-tab-2']")
+        for i in tab_3:
+        	try:
+        		item[i[1]]=arrTr[i[0]].xpath("text()")[0].extract()
+        	except:
+        		item[i[1]]=-1
+        item['N1'] = item["Ngoạingữ"]
         yield item
         # print(response.xpath('//table[@class="table thpt-mobile hidden-md hidden-sm hidden-lg"]/tr')[0].xpath('td/text()').extract())
